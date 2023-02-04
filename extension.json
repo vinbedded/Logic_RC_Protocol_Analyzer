@@ -1,0 +1,17 @@
+{
+  "name": "R/C Protocol Analyzer",
+  "apiVersion": "1.0.0",
+  "author": "Vincent D'Alessandro",
+  "version": "0.0.1",
+  "description": "Analyzer for RC bus protocols",
+  "extensions": {
+    "Spektrum SRXL2": {
+      "type": "HighLevelAnalyzer",
+      "entryPoint": "HighLevelAnalyzer.Hla"
+    },
+    "Futaba SBus": {
+      "type": "HighLevelAnalyzer",
+      "entryPoint": "HighLevelAnalyzer.Hla"
+    }
+  }
+}
