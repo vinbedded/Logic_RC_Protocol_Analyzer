@@ -205,13 +205,29 @@ class Spektrum():
         crc = crc ^ (data << 8);
 
         for n in range(0, 8):
-            print(n);
             if (crc & 0x8000):
                 crc = (crc << 1) ^ 0x1021
             else:
                 crc = crc << 1;
 
+        crc = 0x0FFFF & crc;
         return crc;
+
+    def crc_check(self, packet):
+        packet_length = packet[2];
+        crcHi = packet[packet_length-2];
+        crcLo = packet[packet_length-1];
+        crc = crcHi;
+        crc = ((crc << 8) | crcLo) & 0x0FFFF;
+
+        computed_crc = 0;
+        for n in range(0, packet[2]-2):
+            computed_crc = self.crc16(computed_crc, packet[n]);
+
+        if crc == computed_crc:
+            return 1
+        else:
+            return 0;
 
 if __name__ == "__main__":
     spektrum = Spektrum();
@@ -220,9 +236,9 @@ if __name__ == "__main__":
     print(spektrum.packet_type[data]["packet_description"]);
     print(spektrum.packet_type[data]["payload"][1]);
     packet = [0xFE, 0x08, 0x02, 0x4E, 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
-
-    computedCRC = 0;
-    for n in range(0, len(packet)):
-        computedCRC = spektrum.crc16(computedCRC, packet[n]);
-    print("0x%0.4X" % computedCRC);
+    packet = [0xA6, 0x21, 0x0E, 0x10, 0x60, 0x0A, 0x01, 0x01, 0xF6, 0x02, 0x01, 0x7E, 0x3C, 0xDD];
+              
+    #computedCRC = spektrum.crc(packet);
+    print(spektrum.crc_check(packet));
+    #print("0x%0.4X" % computedCRC);
     
