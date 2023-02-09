@@ -4,14 +4,15 @@
 from saleae.analyzers import HighLevelAnalyzer, AnalyzerFrame, StringSetting, NumberSetting, ChoicesSetting
 
 from Spektrum import *;
+from Futaba   import *;
 import copy;
 
 # High level analyzers must subclass the HighLevelAnalyzer class.
 class Hla(HighLevelAnalyzer):
     # List of settings that a user can set for this High Level Analyzer.
-    my_string_setting = StringSetting()
-    my_number_setting = NumberSetting(min_value=0, max_value=100)
-    my_choices_setting = ChoicesSetting(choices=('A', 'B'))
+    #my_string_setting = StringSetting()
+    #my_number_setting = NumberSetting(min_value=0, max_value=100)
+    protocol = ChoicesSetting(choices=("S.Bus", "S.Bus2", 'SRXL2'))
 
     # An optional list of types this analyzer produces, providing a way to customize the way frames are displayed in Logic 2.
     #result_types = {
@@ -39,8 +40,24 @@ class Hla(HighLevelAnalyzer):
                 'format' : "Data%d" % (n),
             }
         });
+
+    for n in range(1, 20):
+        result_types.update({
+            "CH%d" % n: {
+                "format" : 'CH%d={{data.input_type}}' % n,
+            }
+        });
+    result_types.update({
+        "S.BUS" : {
+            "format" : '{{data.input_type}}'
+        },
+        "S.BUS (SOF)" : {
+            "format" : "S.BUS (SOF)",
+        }
+    })
     
     Spektrum = Spektrum();
+    Futaba = Futaba();
     for packet_type in Spektrum.packet_type:
         #print(packet_type);
         cur_type = Spektrum.packet_type[packet_type]["packet_description"];
@@ -57,19 +74,19 @@ class Hla(HighLevelAnalyzer):
                 }
             }); 
 
-    
-
-
     def __init__(self):
         '''
         Initialize HLA.
 
         Settings can be accessed using the same name used above.
         '''
-        print("Settings:", self.my_string_setting,
-              self.my_number_setting, self.my_choices_setting)
+        print("Settings:",
+              #self.my_string_setting,
+              #self.my_number_setting,
+              self.protocol)
 
         self.spektrum = Spektrum();
+        self.futaba   = Futaba();
         self.sof = False;
         self.eof = False;
         self.data_length = 0;
@@ -77,7 +94,130 @@ class Hla(HighLevelAnalyzer):
         self.packet_type = "";
         self.packet_index = 0;
 
-    def decode(self, frame: AnalyzerFrame):
+    def decode_futaba(self, frame: AnalyzerFrame):
+        
+        data = int.from_bytes(frame.data['data'], "big");
+        
+        message = "S.BUS"
+        
+        if self.packet_index == 0 and (data == self.futaba.header):
+            self.sof = True;
+            message = "S.BUS (SOF)";
+            print("%s (SoF)" % (message));
+
+        if not self.sof:
+            return;
+
+        if (self.packet_index >= 1) and (self.packet_index <= 22):
+            #print(self.packet_index);
+            message, data = self.futaba.decode_bytes_from_packet(data, self.packet_index, message);
+#            self.futaba.packet[self.packet_index] = copy.deepcopy(data);
+#            data_ch1  = (self.futaba.packet[1] | self.futaba.packet[2] << 8 & 0x07FF);
+#            data_ch2  = (self.futaba.packet[2] >> 3 | self.futaba.packet[3] << 5 & 0x07FF);
+#            data_ch3  = (self.futaba.packet[3] >> 6 | self.futaba.packet[4] << 2 | self.futaba.packet[5] << 10 & 0x07FF);
+#            data_ch4  = (self.futaba.packet[5] >> 1 | self.futaba.packet[6] << 7 & 0x07FF);
+#            data_ch5  = (self.futaba.packet[6] >> 4 | self.futaba.packet[7] << 4 & 0x07FF);
+#            data_ch6  = (self.futaba.packet[7] >> 7 | self.futaba.packet[8] << 1 | self.futaba.packet[9] << 9 & 0x07FF);
+#            data_ch7  = (self.futaba.packet[9] >> 2 | self.futaba.packet[10] << 6 & 0x07FF);
+#            data_ch8  = (self.futaba.packet[10] >> 5 | self.futaba.packet[11] << 3 & 0x07FF);
+#            data_ch9  = (self.futaba.packet[12] | self.futaba.packet[13] << 8 & 0x07FF);
+#            data_ch10  = (self.futaba.packet[13] >> 3 | self.futaba.packet[14] << 5 & 0x07FF);
+#            data_ch11 = (self.futaba.packet[14] >> 6 | self.futaba.packet[15] << 2 | self.futaba.packet[16] << 10 & 0x07FF);
+#            data_ch12 = (self.futaba.packet[16] >> 1 | self.futaba.packet[17] << 7 & 0x07FF);
+#            data_ch13 = (self.futaba.packet[17] >> 4 | self.futaba.packet[18] << 4 & 0x07FF);
+#            data_ch14 = (self.futaba.packet[18] >> 7 | self.futaba.packet[19] << 1 | self.futaba.packet[20] << 9 & 0x07FF);
+#            data_ch15 = (self.futaba.packet[20] >> 2 | self.futaba.packet[21] << 6 & 0x07FF);
+#            data_ch16 = (self.futaba.packet[21] >> 5 | self.futaba.packet[22] << 3 & 0x07FF);
+#            if self.packet_index == 2:
+#                message = "CH1";
+#                data = data_ch1;
+#            elif self.packet_index == 3:
+#                message = "CH2";
+#                data = data_ch2;
+#            elif self.packet_index == 5:
+#                message = "CH3";
+#                data = data_ch3;
+#            elif self.packet_index == 6:
+#                message = "CH4";
+#                data = data_ch4;
+#            elif self.packet_index == 7:
+#                message = "CH5";
+#                data = data_ch5;
+#            elif self.packet_index == 9:
+#                message = "CH6";
+#                data = data_ch6;
+#            elif self.packet_index == 10:
+#                message = "CH7";
+#                data = data_ch7;
+#            elif self.packet_index == 11:
+#                message = "CH8";
+#                data = data_ch8;
+#            elif self.packet_index == 13:
+#                message = "CH9";
+#                data = data_ch9;
+#            elif self.packet_index == 14:
+#                message = "CH10";
+#                data = data_ch10;
+#            elif self.packet_index == 16:
+#                message = "CH11";
+#                data = data_ch11;
+#            elif self.packet_index == 17:
+#                message = "CH12";
+#                data = data_ch12;
+#            elif self.packet_index == 18:
+#                message = "CH13";
+#                data = data_ch13;
+#            elif self.packet_index == 20:
+#                message = "CH14";
+#                data = data_ch14;
+#            elif self.packet_index == 21:
+#                message = "CH15";
+#                data = data_ch15;
+#            elif self.packet_index == 22:
+#                message = "CH16";
+#                data = data_ch16;
+#            else:
+#                data = "";
+
+            #data_.ch[0]  = (buf_[1] | buf_[2] << 8 & 0x07FF);
+            #data_.ch[1]  = (buf_[2] >> 3 | buf_[3] << 5 & 0x07FF);
+            #data_.ch[2]  = (buf_[3] >> 6 | buf_[4] << 2 | buf_[5] << 10 & 0x07FF);
+            #data_.ch[3]  = (buf_[5] >> 1 | buf_[6] << 7 & 0x07FF);
+            #data_.ch[4]  = (buf_[6] >> 4 | buf_[7] << 4 & 0x07FF);
+            #data_.ch[5]  = (buf_[7] >> 7 | buf_[8] << 1 | buf_[9] << 9 & 0x07FF);
+            #data_.ch[6]  = (buf_[9] >> 2 | buf_[10] << 6 & 0x07FF);
+            #data_.ch[7]  = (buf_[10] >> 5 | buf_[11] << 3 & 0x07FF);
+            #data_.ch[8]  = (buf_[12] | buf_[13] << 8 & 0x07FF);
+            #data_.ch[9]  = (buf_[13] >> 3 | buf_[14] << 5 & 0x07FF);
+            #data_.ch[10] = (buf_[14] >> 6 | buf_[15] << 2 | buf_[16] << 10 & 0x07FF);
+            #data_.ch[11] = (buf_[16] >> 1 | buf_[17] << 7 & 0x07FF);
+            #data_.ch[12] = (buf_[17] >> 4 | buf_[18] << 4 & 0x07FF);
+            #data_.ch[13] = (buf_[18] >> 7 | buf_[19] << 1 | buf_[20] << 9 & 0x07FF);
+            #data_.ch[14] = (buf_[20] >> 2 | buf_[21] << 6 & 0x07FF);
+            #data_.ch[15] = (buf_[21] >> 5 | buf_[22] << 3 & 0x07FF);
+
+        if self.packet_index == 23:
+            self.futaba.decode_flags(data);
+            print("Flags: CH17=%d,CH18=%d,FrmLost=%d,FailSafe=%d" % (self.futaba.ch17, self.futaba.ch18, self.futaba.frame_lost, self.futaba.fail_safe));
+
+        if self.packet_index == 24:
+            self.eof = True;
+
+        if self.eof:
+            self.packet_index = 0;
+            self.data_length = 0;
+            self.data_index  = 0;
+            self.sof = False;
+            self.eof = False;
+            self.futaba.clear_packet();
+        elif self.sof:
+            self.packet_index += 1;
+
+        #return AnalyzerFrame(message, frame.start_time, frame.end_time, {"S.BUS" : frame.data['data']})
+        return AnalyzerFrame(message, frame.start_time, frame.end_time, {"input_type" : data})
+            
+        
+    def decode_spektrum(self, frame: AnalyzerFrame):
         '''
         Process a frame from the input analyzer, and optionally return a single `AnalyzerFrame` or a list of `AnalyzerFrame`s.
 
@@ -145,3 +285,8 @@ class Hla(HighLevelAnalyzer):
         #return AnalyzerFrame(message, frame.start_time, frame.end_time, None);
         #return AnalyzerFrame(message, frame.start_time, frame.end_time, {message : str(data)});
         
+    def decode(self, frame: AnalyzerFrame):
+        if self.protocol in ["SRXL2"]:
+            return self.decode_spektrum(frame);
+        elif self.protocol in ["S.Bus", "S.Bus2"]:
+            return self.decode_futaba(frame);
