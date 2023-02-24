@@ -53,7 +53,11 @@ class Hla(HighLevelAnalyzer):
         },
         "S.BUS (SOF)" : {
             "format" : "S.BUS (SOF)",
-        }
+        },
+        "CH17_CH18_FL_FS" : {
+            "format" : 'CH17={{data.ch17}},CH18={{data.ch18}},FL={{data.frame_lost}},FS={{data.fail_safe}}',
+            #"format" : '{{data.input_type}}',
+        },
     })
     
     Spektrum = Spektrum();
@@ -99,6 +103,7 @@ class Hla(HighLevelAnalyzer):
         data = int.from_bytes(frame.data['data'], "big");
         
         message = "S.BUS"
+        input_type = "";
         
         if self.packet_index == 0 and (data == self.futaba.header):
             self.sof = True;
@@ -112,26 +117,11 @@ class Hla(HighLevelAnalyzer):
             #print(self.packet_index);
             message, data = self.futaba.decode_bytes_from_packet(data, self.packet_index, message);
 
-            #data_.ch[0]  = (buf_[1] | buf_[2] << 8 & 0x07FF);
-            #data_.ch[1]  = (buf_[2] >> 3 | buf_[3] << 5 & 0x07FF);
-            #data_.ch[2]  = (buf_[3] >> 6 | buf_[4] << 2 | buf_[5] << 10 & 0x07FF);
-            #data_.ch[3]  = (buf_[5] >> 1 | buf_[6] << 7 & 0x07FF);
-            #data_.ch[4]  = (buf_[6] >> 4 | buf_[7] << 4 & 0x07FF);
-            #data_.ch[5]  = (buf_[7] >> 7 | buf_[8] << 1 | buf_[9] << 9 & 0x07FF);
-            #data_.ch[6]  = (buf_[9] >> 2 | buf_[10] << 6 & 0x07FF);
-            #data_.ch[7]  = (buf_[10] >> 5 | buf_[11] << 3 & 0x07FF);
-            #data_.ch[8]  = (buf_[12] | buf_[13] << 8 & 0x07FF);
-            #data_.ch[9]  = (buf_[13] >> 3 | buf_[14] << 5 & 0x07FF);
-            #data_.ch[10] = (buf_[14] >> 6 | buf_[15] << 2 | buf_[16] << 10 & 0x07FF);
-            #data_.ch[11] = (buf_[16] >> 1 | buf_[17] << 7 & 0x07FF);
-            #data_.ch[12] = (buf_[17] >> 4 | buf_[18] << 4 & 0x07FF);
-            #data_.ch[13] = (buf_[18] >> 7 | buf_[19] << 1 | buf_[20] << 9 & 0x07FF);
-            #data_.ch[14] = (buf_[20] >> 2 | buf_[21] << 6 & 0x07FF);
-            #data_.ch[15] = (buf_[21] >> 5 | buf_[22] << 3 & 0x07FF);
-
         if self.packet_index == 23:
+            #message = "CH17_CH18_FL_FS";
             self.futaba.decode_flags(data);
             print("Flags: CH17=%d,CH18=%d,FrmLost=%d,FailSafe=%d" % (self.futaba.ch17, self.futaba.ch18, self.futaba.frame_lost, self.futaba.fail_safe));
+            #input_type = "CH17=%d,CH18=%d,FL=%d,FS=%d" % (self.futaba.ch17, self.futaba.ch18, self.futaba.frame_lost, self.futaba.fail_safe);
 
         if self.packet_index == 24:
             self.eof = True;
@@ -147,7 +137,19 @@ class Hla(HighLevelAnalyzer):
             self.packet_index += 1;
 
         #return AnalyzerFrame(message, frame.start_time, frame.end_time, {"S.BUS" : frame.data['data']})
-        return AnalyzerFrame(message, frame.start_time, frame.end_time, {"input_type" : data})
+        if self.packet_index == 23:
+            #return AnalyzerFrame(message, frame.start_time, frame.end_time, {"ch17" : self.futaba.ch17,
+            #                                                                 "ch18" : self.futaba.ch18,
+            #                                                                 "frame_lost" : self.futaba.frame_lost,
+            #                                                                 "fail_safe"  : self.futaba.fail_safe});
+            #return AnalyzerFrame(message, frame.start_time, frame.end_time, {"input_type" : self.futaba.ch17,
+            #                                                                 "input_type" : self.futaba.ch18,
+            #                                                                 "input_type" : self.futaba.frame_lost,
+            #                                                                 "input_type"  : self.futaba.fail_safe});
+            #return AnalyzerFrame(message, frame.start_time, frame.end_time, {"input_type" : input_type})
+            return AnalyzerFrame(message, frame.start_time, frame.end_time, {"input_type" : data})
+        else:
+            return AnalyzerFrame(message, frame.start_time, frame.end_time, {"input_type" : data})
             
         
     def decode_spektrum(self, frame: AnalyzerFrame):

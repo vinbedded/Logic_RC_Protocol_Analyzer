@@ -10,6 +10,10 @@ class Futaba():
         self.packet = [];
         for n in range(0, 25):
             self.packet.append(0);
+        self.ch17 = 0;
+        self.ch18 = 0;
+        self.frame_lost = 0;
+        self.fail_safe = 0;
         
     def clear_packet(self):
         for n in range(0, 25):
