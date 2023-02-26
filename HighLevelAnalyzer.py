@@ -72,6 +72,15 @@ class Hla(HighLevelAnalyzer):
         "S.BUS Slot24-31" : {
             "format" : "Slots 24 to 31",
         },
+        "RX V" : {
+            "format" : "RX Voltage",
+        },
+        "Telemetry" : {
+            "format" : "",
+        },
+        "Nothing" : {
+            "format" : "",
+        },
     })
     
     Spektrum = Spektrum();
@@ -111,6 +120,10 @@ class Hla(HighLevelAnalyzer):
         self.data_index  = 0;
         self.packet_type = "";
         self.packet_index = 0;
+        self.current_slots = 0;
+        self.slot_data_index = 0;
+        self.current_slot_id = 0;
+        self.slot_value = 0;
 
     def decode_futaba(self, frame: AnalyzerFrame):
         
@@ -118,6 +131,52 @@ class Hla(HighLevelAnalyzer):
         
         message = "S.BUS"
         input_type = "";
+        valid_slot = False;
+        
+        if (self.current_slots in [0x04, 0x14, 0x24, 0x34]) and (not self.sof) and (data != self.futaba.header):
+            if self.slot_data_index == 0:
+                if data == self.futaba.sbus2_slot_id[0]:
+                    message = "RX V";
+                else:
+                    message = "Telemetry";
+                self.current_slot_id = data;
+                valid_slot = True;
+            elif self.slot_data_index == 1:
+                valid_slot = True;
+                message = "Nothing";
+                self.slot_value = data << 8;
+                #self.slot_value = copy.deepcopy(data);
+            elif self.slot_data_index == 2:
+                valid_slot = True;
+                message = "S.BUS";
+                self.slot_value = self.slot_value | data;
+                #self.slot_value = (data << 8) | self.slot_value;
+                data = self.slot_value;
+            elif self.slot_data_index == 3:
+                if data not in self.futaba.sbus2_slot_id:
+                    valid_slot = False;
+                    self.current_slots = 0;
+                    self.slot_data_index = 0;
+                    self.current_slot_id = 0;
+                    self.slot_value = 0;
+                else:
+                    message = "Telemetry";
+                    self.slot_data_index = 0;
+                    self.current_slot_id = data;
+            #print(self.slot_data_index, data);
+
+            if valid_slot:
+                self.slot_data_index+=1;
+                return AnalyzerFrame(message, frame.start_time, frame.end_time, {"input_type" : data})
+            else:
+                message = "S.BUS";
+        else:
+            valid_slot = False;
+            self.current_slots = 0;
+            self.slot_data_index = 0;
+            self.current_slot_id = 0;
+            self.slot_value = 0;
+            
         
         if self.packet_index == 0 and (data == self.futaba.header):
             self.sof = True;
@@ -140,8 +199,11 @@ class Hla(HighLevelAnalyzer):
         if self.packet_index == 24:
             if self.protocol == "S.Bus2":
                 message = self.futaba.slot_message_dict[data];
+                self.current_slots = data;
             else:
+                self.current_slots = 0;
                 message = "";
+            print(message);
             self.eof = True;
 
         if self.eof:
