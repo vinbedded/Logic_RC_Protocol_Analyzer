@@ -3,8 +3,8 @@ import copy;
 
 class Futaba():
     def __init__(self):
-        self.id = 0xF0;
-        self.id_sbus2 = self.id; #FIXME
+        self.id = 0x0F;
+        self.id_sbus2 = self.id;
         self.id_sbus  = self.id;
         self.header = self.id_sbus2
         self.packet = [];
@@ -14,7 +14,18 @@ class Futaba():
         self.ch18 = 0;
         self.frame_lost = 0;
         self.fail_safe = 0;
-        
+        self.slot_0_to_7 = 0x04;
+        self.slot_8_to_15 = 0x14;
+        self.slot_16_to_23 = 0x24;
+        self.slot_24_to_31 = 0x34;
+
+        self.slot_message_dict = {
+            self.slot_0_to_7 : "S.BUS Slot0-7",
+            self.slot_8_to_15 : "S.BUS Slot8-15",
+            self.slot_16_to_23 : "S.BUS Slot16-23",
+            self.slot_24_to_31 : "S.BUS Slot24-31",
+        };
+
     def clear_packet(self):
         for n in range(0, 25):
             self.packet.append(0);

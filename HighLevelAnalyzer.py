@@ -12,7 +12,9 @@ class Hla(HighLevelAnalyzer):
     # List of settings that a user can set for this High Level Analyzer.
     #my_string_setting = StringSetting()
     #my_number_setting = NumberSetting(min_value=0, max_value=100)
-    protocol = ChoicesSetting(choices=("S.Bus", "S.Bus2", 'SRXL2'))
+    protocol = ChoicesSetting(choices=("S.Bus",
+                                       "S.Bus2",
+                                       'SRXL2'))
 
     # An optional list of types this analyzer produces, providing a way to customize the way frames are displayed in Logic 2.
     #result_types = {
@@ -57,6 +59,18 @@ class Hla(HighLevelAnalyzer):
         "CH17_CH18_FL_FS" : {
             "format" : 'CH17={{data.ch17}},CH18={{data.ch18}},FL={{data.frame_lost}},FS={{data.fail_safe}}',
             #"format" : '{{data.input_type}}',
+        },
+        "S.BUS Slot0-7" : {
+            "format" : "Slots 0 to 7",
+        },
+        "S.BUS Slot8-15" : {
+            "format" : "Slots 8 to 15",
+        },
+        "S.BUS Slot16-23" : {
+            "format" : "Slots 16 to 23",
+        },
+        "S.BUS Slot24-31" : {
+            "format" : "Slots 24 to 31",
         },
     })
     
@@ -124,6 +138,10 @@ class Hla(HighLevelAnalyzer):
             #input_type = "CH17=%d,CH18=%d,FL=%d,FS=%d" % (self.futaba.ch17, self.futaba.ch18, self.futaba.frame_lost, self.futaba.fail_safe);
 
         if self.packet_index == 24:
+            if self.protocol == "S.Bus2":
+                message = self.futaba.slot_message_dict[data];
+            else:
+                message = "";
             self.eof = True;
 
         if self.eof:
