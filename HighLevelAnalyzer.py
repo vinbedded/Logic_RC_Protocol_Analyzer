@@ -76,7 +76,7 @@ class Hla(HighLevelAnalyzer):
             "format" : "RX Voltage",
         },
         "Telemetry" : {
-            "format" : "",
+            "format" : "Tele.",
         },
         "Nothing" : {
             "format" : "",
@@ -135,15 +135,15 @@ class Hla(HighLevelAnalyzer):
         
         if (self.current_slots in [0x04, 0x14, 0x24, 0x34]) and (not self.sof) and (data != self.futaba.header):
             if self.slot_data_index == 0:
+                message = "Telemetry";
                 if data == self.futaba.sbus2_slot_id[0]:
                     message = "RX V";
-                else:
-                    message = "Telemetry";
+                
                 self.current_slot_id = data;
                 valid_slot = True;
             elif self.slot_data_index == 1:
                 valid_slot = True;
-                message = "Nothing";
+                message = "S.BUS";
                 self.slot_value = data << 8;
                 #self.slot_value = copy.deepcopy(data);
             elif self.slot_data_index == 2:
@@ -154,6 +154,7 @@ class Hla(HighLevelAnalyzer):
                 data = self.slot_value;
             elif self.slot_data_index == 3:
                 if data not in self.futaba.sbus2_slot_id:
+                    message = "S.BUS";
                     valid_slot = False;
                     self.current_slots = 0;
                     self.slot_data_index = 0;
@@ -161,6 +162,7 @@ class Hla(HighLevelAnalyzer):
                     self.slot_value = 0;
                 else:
                     message = "Telemetry";
+                    valid_slot = True
                     self.slot_data_index = 0;
                     self.current_slot_id = data;
             #print(self.slot_data_index, data);
